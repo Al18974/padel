@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Padel Organizer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #080a0f; --bg-card: #0f1218; --bg-surface: #151920; --bg-hover: #1a1f2a;
+      --border: #1a1f2a; --border-light: #252b3a;
+      --text: #e4e7ee; --text2: #7d869c; --text3: #454d62;
+      --green: #00f5a0; --green-bg: rgba(0,245,160,0.08); --green-glow: rgba(0,245,160,0.25);
+      --red: #ff4d6a; --red-bg: rgba(255,77,106,0.08);
+      --orange: #ff9f1c; --orange-bg: rgba(255,159,28,0.1);
+      --blue: #3b82f6; --r: 10px;
+    }
+    html { background: var(--bg); }
+    body {
+      font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text);
+      min-height: 100dvh; -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Login */
+    .login {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      min-height: 100dvh; padding: 24px; text-align: center;
+    }
+    .login-icon { font-size: 52px; margin-bottom: 8px; }
+    .login h1 {
+      font-family: 'Bebas Neue', sans-serif; font-size: 52px; letter-spacing: 3px;
+      background: linear-gradient(135deg, var(--green), #00c8ff);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .login p { color: var(--text3); font-size: 13px; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 40px; }
+    .login-box {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px;
+      padding: 28px; width: 100%; max-width: 360px;
+    }
+    .login-box label {
+      display: block; font-size: 11px; font-weight: 700; color: var(--text2);
+      text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 8px; text-align: left;
+    }
+    .login-box input {
+      width: 100%; background: var(--bg-surface); border: 1px solid var(--border-light);
+      border-radius: 8px; padding: 14px; font-size: 18px; font-family: inherit;
+      color: var(--text); outline: none; transition: .2s;
+    }
+    .login-box input:focus { border-color: var(--green); box-shadow: 0 0 0 3px var(--green-bg); }
+    .login-box input::placeholder { color: var(--text3); }
+    .btn-go {
+      margin-top: 18px; width: 100%; padding: 15px; border: none; border-radius: 8px;
+      font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 2px;
+      background: linear-gradient(135deg, var(--green), #00c8ff); color: #000; cursor: pointer; transition: .15s;
+    }
+    .btn-go:hover { transform: translateY(-1px); box-shadow: 0 6px 20px var(--green-glow); }
+    .btn-go:disabled { opacity: .35; cursor: default; transform: none; box-shadow: none; }
+
+    /* Header */
+    .header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 16px; border-bottom: 1px solid var(--border);
+      background: rgba(8,10,15,.92); backdrop-filter: blur(10px);
+      position: sticky; top: 0; z-index: 100;
+    }
+    .header-title {
+      font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 2px;
+      background: linear-gradient(135deg, var(--green), #00c8ff);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .header-right { display: flex; align-items: center; gap: 8px; }
+    .avatar {
+      width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center;
+      justify-content: center; font-size: 12px; font-weight: 700; color: #000; flex-shrink: 0;
+    }
+    .header-name { font-size: 13px; font-weight: 600; }
+    .btn-logout {
+      background: none; border: none; color: var(--text3); cursor: pointer;
+      font-size: 18px; padding: 4px; line-height: 1;
+    }
+    .btn-logout:hover { color: var(--red); }
+
+    /* Week nav */
+    .week-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 16px 10px; gap: 8px;
+    }
+    .week-label { font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 1px; }
+    .week-btns { display: flex; gap: 6px; }
+    .week-btn {
+      padding: 7px 14px; border-radius: 6px; border: 1px solid var(--border);
+      background: var(--bg-card); color: var(--text2); font-family: inherit;
+      font-size: 12px; font-weight: 600; cursor: pointer; transition: .15s;
+    }
+    .week-btn:hover { background: var(--bg-hover); }
+    .week-btn.on { background: var(--green-bg); border-color: var(--green); color: var(--green); }
+
+    /* Stats */
+    .stats { display: flex; gap: 8px; padding: 0 16px 12px; }
+    .stat {
+      flex: 1; min-width: 80px; background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 10px; text-align: center;
+    }
+    .stat-n { font-family: 'Bebas Neue', sans-serif; font-size: 28px; line-height: 1; }
+    .stat-l { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+
+    /* Legend */
+    .legend {
+      display: flex; gap: 14px; flex-wrap: wrap; padding: 0 16px 14px;
+      font-size: 11px; color: var(--text2);
+    }
+    .legend i {
+      display: inline-block; width: 10px; height: 10px; border-radius: 3px;
+      margin-right: 4px; vertical-align: middle;
+    }
+
+    /* Calendar */
+    .cal-wrap { padding: 0 16px 24px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .cal-grid {
+      display: grid; grid-template-columns: repeat(7, minmax(128px, 1fr)); gap: 6px;
+      min-width: 910px;
+    }
+    .day-col {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r);
+      overflow: hidden;
+    }
+    .day-head {
+      padding: 10px 8px 8px; text-align: center; border-bottom: 1px solid var(--border);
+    }
+    .day-head .dn { font-family: 'Bebas Neue', sans-serif; font-size: 15px; letter-spacing: 1px; }
+    .day-head .dd { font-size: 11px; color: var(--text2); }
+    .day-head.today { background: var(--green-bg); }
+    .day-head.today .dn { color: var(--green); }
+    .today-dot {
+      display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+      background: var(--green); margin-left: 3px; vertical-align: middle;
+    }
+
+    /* Slot */
+    .slot { padding: 7px 7px; border-bottom: 1px solid var(--border); }
+    .slot:last-child { border-bottom: none; }
+    .slot-time {
+      font-size: 10px; font-weight: 600; color: var(--text2); margin-bottom: 5px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .slot-dur { font-size: 9px; color: var(--text3); font-weight: 400; }
+    .slot-toggle {
+      width: 100%; padding: 8px 0; border-radius: 6px; border: 2px solid var(--border-light);
+      background: var(--bg-surface); color: var(--text2); font-family: inherit;
+      font-size: 11px; font-weight: 600; cursor: pointer; transition: all .15s; margin-bottom: 5px;
+    }
+    .slot-toggle:active { transform: scale(.96); }
+    .slot-toggle.on {
+      background: var(--green); color: #000; border-color: var(--green);
+      box-shadow: 0 0 10px var(--green-glow);
+    }
+    .slot-people { display: flex; flex-wrap: wrap; gap: 3px; min-height: 18px; }
+    .chip {
+      display: flex; align-items: center; gap: 2px;
+      padding: 1px 6px 1px 1px; border-radius: 20px; font-size: 9px; font-weight: 500;
+      background: var(--bg-surface); border: 1px solid var(--border);
+    }
+    .chip .avatar { width: 14px; height: 14px; font-size: 7px; }
+    .no-people { font-size: 9px; color: var(--text3); font-style: italic; }
+
+    .slot.match-ready { background: var(--green-bg); }
+    .slot.match-ready .slot-time { color: var(--green); }
+    .slot.almost-ready { background: var(--orange-bg); }
+
+    .match-badge {
+      font-size: 8px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase;
+      padding: 2px 5px; border-radius: 3px; display: inline-block; margin-bottom: 4px;
+    }
+    .match-badge.green { background: var(--green); color: #000; }
+    .match-badge.orange { background: var(--orange); color: #000; }
+
+    .footer { text-align: center; padding: 16px; font-size: 11px; color: var(--text3); }
+    .warning-bar {
+      text-align: center; padding: 8px 16px; margin: 0 16px; border-radius: 8px;
+      background: var(--orange-bg); color: var(--orange); font-size: 12px; font-weight: 600;
+    }
+
+    .loading {
+      display: flex; align-items: center; justify-content: center;
+      min-height: 200px; color: var(--text3); font-size: 14px; gap: 10px;
+    }
+    .spinner {
+      width: 20px; height: 20px; border: 2px solid var(--border-light);
+      border-top-color: var(--green); border-radius: 50%; animation: spin .6s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 700px) {
+      .cal-grid { grid-template-columns: repeat(7, 128px); }
+    }
+  </style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+// ═══════════════════════════════════════
+// 🔧 FIREBASE — Remplace avec tes clés
+// ═══════════════════════════════════════
+const FIREBASE_CONFIG = {
+  apiKey: "REMPLACE_MOI",
+  authDomain: "REMPLACE_MOI.firebaseapp.com",
+  databaseURL: "https://REMPLACE_MOI-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "REMPLACE_MOI",
+  storageBucket: "REMPLACE_MOI.appspot.com",
+  messagingSenderId: "000000000000",
+  appId: "REMPLACE_MOI"
+};
+
+// ═══════════════════════════════════════
+// Créneaux par jour
+// ═══════════════════════════════════════
+const SLOTS = {
+  1: [['07:30','09:00'],['09:00','10:30'],['10:30','12:00'],['12:00','14:00'],['14:00','15:30'],['17:30','18:30'],['18:30','20:00'],['20:00','22:00']],
+  2: [['07:30','09:00'],['09:00','10:30'],['10:30','12:00'],['12:00','14:00'],['18:00','18:30'],['18:30','20:00'],['20:00','22:00']],
+  0: [['07:30','09:00'],['09:00','10:30'],['10:30','12:00'],['12:00','14:00'],['14:00','15:30'],['15:30','17:00'],['17:00','18:30'],['18:30','20:00'],['20:00','22:00']],
+};
+SLOTS[3]=SLOTS[4]=SLOTS[5]=SLOTS[6]=SLOTS[0];
+
+const DN=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+const MN=['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Août','Sep','Oct','Nov','Déc'];
+const COLS=['#00f5a0','#3b82f6','#f472b6','#fbbf24','#a78bfa','#f97316','#34d399','#e879f9','#6ee7b7','#fb923c'];
+
+function nc(n){let h=0;for(let i=0;i<n.length;i++)h=n.charCodeAt(i)+((h<<5)-h);return COLS[Math.abs(h)%COLS.length]}
+function fd(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function it(d){return fd(d)===fd(new Date())}
+function dl(a,b){const[h1,m1]=a.split(':').map(Number);const[h2,m2]=b.split(':').map(Number);const m=(h2*60+m2)-(h1*60+m1);return m>=60?(Math.floor(m/60)+'h'+(m%60>0?String(m%60).padStart(2,'0'):'')):m+'min'}
+function gd(wo){const t=new Date(),s=new Date(t);s.setDate(s.getDate()+wo*7);const dw=s.getDay(),df=dw===0?-6:1-dw;s.setDate(s.getDate()+df);const d=[];for(let i=0;i<7;i++){const x=new Date(s);x.setDate(x.getDate()+i);d.push(x)}return d}
+function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
+
+let firebaseOk=false,db,dbRef;
+try{firebase.initializeApp(FIREBASE_CONFIG);db=firebase.database();dbRef=db.ref('slots');firebaseOk=FIREBASE_CONFIG.apiKey!=='REMPLACE_MOI'}catch(e){}
+
+const $=document.getElementById('app');
+let user=localStorage.getItem('padel_user')||null, week=0, data={}, loading=true;
+
+if(firebaseOk){dbRef.on('value',s=>{data=s.val()||{};loading=false;R()})}
+else{try{data=JSON.parse(localStorage.getItem('padel_data')||'{}')}catch(e){}loading=false}
+
+function setA(k,u,on){
+  if(firebaseOk){const r=db.ref('slots/'+k+'/'+u);on?r.set(true):r.remove()}
+  else{if(!data[k])data[k]={};if(on)data[k][u]=true;else{delete data[k][u];if(!Object.keys(data[k]).length)delete data[k]}localStorage.setItem('padel_data',JSON.stringify(data));R()}
+}
+function login(n){user=n;localStorage.setItem('padel_user',n);R()}
+function logout(){user=null;localStorage.removeItem('padel_user');R()}
+function setWeek(w){week=w;R()}
+function toggle(k,on){setA(k,user,on)}
+
+function R(){
+  if(!user){$.innerHTML=`
+    <div class="login"><div class="login-icon">🏸</div><h1>PADEL</h1><p>Organizer</p>
+    <div class="login-box"><label for="ni">Ton prénom</label>
+    <input id="ni" type="text" placeholder="Ex : Alex" maxlength="20" autocomplete="off"/>
+    <button class="btn-go" id="bg" disabled>C'EST PARTI →</button></div></div>`;
+    const i=document.getElementById('ni'),b=document.getElementById('bg');i.focus();
+    i.addEventListener('input',()=>{b.disabled=i.value.trim().length<2});
+    i.addEventListener('keydown',e=>{if(e.key==='Enter'&&i.value.trim().length>=2)login(i.value.trim())});
+    b.addEventListener('click',()=>{if(i.value.trim().length>=2)login(i.value.trim())});
+    return;
+  }
+
+  const days=gd(week);
+  let tm=0,ta=0,md=0;
+  days.forEach(d=>{SLOTS[d.getDay()].forEach(([a])=>{const p=data[fd(d)+'_'+a]||{};const c=Object.keys(p).length;if(c>=4)tm++;else if(c===3)ta++;if(p[user])md++})});
+
+  let h=`<div class="header"><div class="header-title">🏸 PADEL</div><div class="header-right">
+    <div class="avatar" style="background:${nc(user)}">${user[0].toUpperCase()}</div>
+    <span class="header-name">${esc(user)}</span>
+    <button class="btn-logout" onclick="logout()">✕</button></div></div>
+    <div class="week-bar"><div class="week-label">${week===0?'Cette semaine':'Semaine prochaine'}</div>
+    <div class="week-btns"><button class="week-btn ${week===0?'on':''}" onclick="setWeek(0)">S1</button>
+    <button class="week-btn ${week===1?'on':''}" onclick="setWeek(1)">S2</button></div></div>
+    <div class="stats">
+      <div class="stat"><div class="stat-n" style="color:var(--green)">${tm}</div><div class="stat-l">Match prêt</div></div>
+      <div class="stat"><div class="stat-n" style="color:var(--orange)">${ta}</div><div class="stat-l">Presque</div></div>
+      <div class="stat"><div class="stat-n" style="color:var(--blue)">${md}</div><div class="stat-l">Mes dispos</div></div>
+    </div>
+    <div class="legend"><span><i style="background:var(--green)"></i>Dispo</span>
+    <span><i style="background:var(--green);box-shadow:0 0 6px var(--green-glow)"></i>4+ = Match</span>
+    <span><i style="background:var(--orange)"></i>3 = Presque</span></div>`;
+
+  if(loading){h+=`<div class="loading"><div class="spinner"></div>Chargement</div>`}
+  else{
+    h+=`<div class="cal-wrap"><div class="cal-grid">`;
+    days.forEach(d=>{
+      const ds=fd(d),dw=d.getDay(),sl=SLOTS[dw],td=it(d);
+      h+=`<div class="day-col"><div class="day-head ${td?'today':''}">
+        <div class="dn">${DN[dw]}${td?' <span class="today-dot"></span>':''}</div>
+        <div class="dd">${d.getDate()} ${MN[d.getMonth()]}</div></div>`;
+      sl.forEach(([a,b])=>{
+        const k=ds+'_'+a,p=data[k]||{},ns=Object.keys(p),c=ns.length,on=!!p[user];
+        const mr=c>=4,al=c===3;
+        h+=`<div class="slot${mr?' match-ready':''}${al?' almost-ready':''}">`;
+        h+=`<div class="slot-time"><span>${a}–${b}</span><span class="slot-dur">${dl(a,b)}</span></div>`;
+        if(mr)h+=`<span class="match-badge green">🎾 Match !</span>`;
+        else if(al)h+=`<span class="match-badge orange">⚡ -1</span>`;
+        h+=`<button class="slot-toggle${on?' on':''}" onclick="toggle('${k}',${on?'false':'true'})">${on?'✓ Dispo':'Dispo ?'}</button>`;
+        h+=`<div class="slot-people">`;
+        if(!ns.length)h+=`<span class="no-people">—</span>`;
+        else ns.forEach(n=>{h+=`<span class="chip"><span class="avatar" style="background:${nc(n)}">${n[0].toUpperCase()}</span>${esc(n)}</span>`});
+        h+=`</div></div>`;
+      });
+      h+=`</div>`;
+    });
+    h+=`</div></div>`;
+  }
+
+  if(!firebaseOk)h+=`<div class="warning-bar">⚠ Mode local — Configure Firebase pour la synchro temps réel</div>`;
+  h+=`<div class="footer">Padel Organizer · ${firebaseOk?'Sync temps réel ✓':'Mode local'}</div>`;
+  $.innerHTML=h;
+}
+R();
+</script>
+</body>
+</html>
