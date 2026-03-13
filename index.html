@@ -248,7 +248,7 @@ function setA(k,u,on){
   if(firebaseOk){const r=db.ref('slots/'+k+'/'+u);on?r.set(true):r.remove()}
   else{if(!data[k])data[k]={};if(on)data[k][u]=true;else{delete data[k][u];if(!Object.keys(data[k]).length)delete data[k]}localStorage.setItem('padel_data',JSON.stringify(data));R()}
 }
-function login(n){user=n;localStorage.setItem('padel_user',n);R()}
+function login(n){n=n.trim().toLowerCase().replace(/^\w/,c=>c.toUpperCase());user=n;localStorage.setItem('padel_user',n);R()}
 function logout(){user=null;localStorage.removeItem('padel_user');R()}
 function setWeek(w){week=w;R()}
 function toggle(k,on){setA(k,user,on)}
